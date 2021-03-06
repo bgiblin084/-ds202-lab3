@@ -1,0 +1,143 @@
+---
+title: 'Homework #3'
+author: "Braedon Giblin"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(dplyr)
+
+
+dat <- readxl::read_xls('GSS.xls')
+
+
+dat <- dat[!is.na(as.numeric(as.character(dat$`Highest year of school completed`))),]
+dat <- dat[!is.na(as.numeric(as.character(dat$`Number of hours worked last week`))),]
+
+dat <- dat %>%
+  mutate("Highest year of school completed" = as.numeric(dat$`Highest year of school completed`),
+         "Number of hours worked last week" = as.numeric(dat$`Number of hours worked last week`))
+```
+
+
+1.  Find the average years of education for the respondents with each marital status. Arrange your output in a meaningful order and print.
+
+    Answer:
+    ```{R}
+    dat <- dat %>%
+      mutate("Marital status" = factor(`Marital status`, c("Married", "Separated", "Divorced", "Widowed", "Never married", "No answer")),
+             "General happiness" = factor(`General happiness`, c("Very happy", "Pretty happy", "Not too happy", "Not applicable", "Don't know", "No answer")))
+    dat %>%
+      group_by(`Marital status`) %>%
+      summarise_at(vars("Highest year of school completed"), list(name = mean))
+    ggplot(data = dat, aes_string(x = "`Marital status`", y = "`Highest year of school completed`")) + geom_boxplot()
+    ```
+    Widowed and separated people seem to have the least education. Widowed is logical because most widowed people are probably older, and older people had lower educational standards.
+    
+2.  Create a single data frame containing records for the better educated respondents with each marital status. A “better educated” respondent is someone who has strictly more years of education than the average among those with the same marital status. Print the structure of the data frame.
+
+    Answer:
+    ```{R}
+    b <- dat %>%
+      group_by(`Marital status`) %>%
+      mutate(avg_edu = mean(`Highest year of school completed`))
+    b %>%
+      filter(`Highest year of school completed` > avg_edu) %>%
+      ungroup %>%
+      select(-avg_edu) %>% 
+      str
+    ```
+    
+3.  How is the happiness of a respondent related to his/her marriage status? Define that a person is happy if the response to question is “Very happy” or “Pretty happy”.
+
+    Answer:
+    ```{R}
+    dat <- dat %>%
+      mutate(happy = (`General happiness` == "Very happy" | `General happiness` == "Pretty happy"))
+    
+    round(prop.table(table(dat$`Marital status`, dat$happy), 1) * 100)
+    dat %>%
+     ggplot(aes(x=`General happiness`)) + geom_bar() + facet_wrap(~ `Marital status`) + theme(axis.text.x = element_text(angle = 90))
+    ```
+    In General, married people seem the most happy. The table above shows the percentage of people in each marital state that are happy.  From the table, seperated people are among the least happy.while married is the most happy. The other states are fairly even.
+    
+4.  Does party affiliation affect the relationship you found in the last question?
+    
+    
+    Answer:
+    ```{R}
+    round(prop.table(table(dat$`Marital status`, dat$`Political party affiliation`, dat$happy), 1) * 100)
+    dat %>%
+      ggplot(aes(x=`General happiness`)) + geom_bar() + facet_grid(`Political party affiliation` ~ `Marital status`) + theme(axis.text.x = element_text(angle = 90), strip.text.y = element_text(angle = 90))
+    ```
+    
+    Using the above table and plots, it appears that independents are among the least happy. Not strong democrats and not strong repubicans are happier, irrelevant of marital status.
+    
+    
+
+5.  How is marrital status related to the education of a respondent? What are possible reasons accounting for the patterns you see?
+
+
+    Answer:
+    ```{R}
+    dat <- dat %>%
+      mutate("Marital status" = factor(`Marital status`, c("Married", "Separated", "Divorced", "Widowed", "Never married", "No answer")),
+             "General happiness" = factor(`General happiness`, c("Very happy", "Pretty happy", "Not too happy", "Not applicable", "Don't know", "No answer")))
+    dat %>%
+      group_by(`Marital status`) %>%
+      summarise_at(vars("Highest year of school completed"), list(name = mean))
+    ggplot(data = dat, aes_string(x = "`Marital status`", y = "`Highest year of school completed`")) + geom_boxplot()
+    ```
+    Divorced individuals and never married individuals average the highest levels of education. This is likely because they work higher stress, higher hour jobs that may make marriage difficult. Widowed people have the lowest education levels. This is because widowed people are likley older people, who came from a time when education was valued less.
+    
+    
+6.  Explore two more interesting questions, and answer those questions using the GSS data.
+
+    Answer:
+    Question 1. How does the hours worked last week correspond to education level?
+    ```{R}
+    dat %>% 
+      ggplot(aes(x = `Number of hours worked last week`, y = `Highest year of school completed`)) + geom_jitter()
+    
+    print("Works more than 40 hours a week: ")
+    dat  %>%
+      filter(`Number of hours worked last week` > 40) %>%
+      summarise(mean_rate = mean(`Highest year of school completed`, na.rm=TRUE),
+          sd_rate = sd(`Highest year of school completed`, na.rm=TRUE),)
+    
+    print("Works less than or equal to 40 hours a week: ")
+    dat  %>%
+      filter(`Number of hours worked last week` <= 40) %>%
+      summarise(mean_rate = mean(`Highest year of school completed`, na.rm=TRUE),
+          sd_rate = sd(`Highest year of school completed`, na.rm=TRUE),)
+    ```
+    
+    Most people seem to work around 40 hours a week regardless of education. However, looking at the average education for people who work more than 40 hours a week and comparring to the education of people who work less than or equal to 40 hours a week, it can be seen that slightly higher education levels are present among those who work more. This is intersesting as it implies that more education does not equal an easier workload.
+    
+    Question 2. How does work per week effect happiness?
+    
+    ```{R}
+    dat %>%
+      group_by(`General happiness`) %>%
+      summarise_at(vars("Number of hours worked last week"), list(name = mean))
+    ggplot(data = dat, aes(x = `General happiness`, y = `Number of hours worked last week`)) + geom_boxplot()
+    ```
+    
+    Work hours seem to have very little impact on happiness. However, happy people seem to work slightly more than not too happy people. This could perhaps be because they earn more money by working longer.
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
